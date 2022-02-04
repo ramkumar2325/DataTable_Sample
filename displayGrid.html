@@ -1,0 +1,66 @@
+<html>
+    <head>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">	<link rel="stylesheet" type="text/css" href="/style/datatables.min.css">
+	<script type="text/javascript" language="javascript" src="/scripts/jquery-3.6.0.js"></script>
+	<script type="text/javascript" language="javascript" src="/scripts/datatables.min.js"></script>
+    
+    <style>
+        body{
+            font: 90%/1.45em "Helvetica Neue", HelviticaNeue, Verdana, Arial, Helvitica,sans-serif;
+            margin:0;
+            padding: 0;
+            color: #333;
+            background-color: #fff;
+        }
+    </style>
+    <script>
+        $(document).ready(function(){
+
+            let elementName=$("#example");
+            //Collect Data
+            const availableAgents=$.getJSON('/personRawData.json',function(){
+                console.log( availableAgents.responseText);
+                
+                for (const [key, value] of Object.entries(availableAgents.responseJSON)) {
+                            let rowData="<tr> <td>" + availableAgents.responseJSON[key].userName + "</td>";
+                                rowData+="<td>" + availableAgents.responseJSON[key].firstName + "</td>";
+                                rowData+="<td>" + availableAgents.responseJSON[key].lastName + "</td>";
+                                rowData+="<td>" + availableAgents.responseJSON[key].startDate + "</td>";
+                                rowData+="<td>" + availableAgents.responseJSON[key].endDate + "</td>";
+                                rowData+="<td>" + availableAgents.responseJSON[key].replacementAgent + "</td>";
+                                rowData+="<td>" + availableAgents.responseJSON[key].comment + "</td>";
+                                elementName.append(rowData);
+                        }                 
+            });
+            
+
+            LoadGrid();
+        });
+
+        function LoadGrid()
+        {
+            $('#example').DataTable();        
+        }
+    </script>
+    </head>
+    <body>
+        <div class="container">
+        <table id="example" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>User Name</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Assigned Agent</th>
+                    <th>Comments</th>
+                </tr>
+            </thead>
+           
+        </table>
+    </div>
+    </body>
+</html>
