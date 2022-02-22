@@ -18,31 +18,100 @@
     <script>
         $(document).ready(function(){
 
-            let elementName=$("#example");
-            //Collect Data
-            const availableAgents=$.getJSON('/personRawData.json',function(){
+            try {
+
+                let availableAgents = new Array();
+				
+				const userCollections=$.getJSON('/personRawData.json',function(){  //In actual code, "userCollections" object filled with value using different logic
                 console.log( availableAgents.responseText);
-                
-                for (const [key, value] of Object.entries(availableAgents.responseJSON)) {
-                            let rowData="<tr> <td>" + availableAgents.responseJSON[key].userName + "</td>";
-                                rowData+="<td>" + availableAgents.responseJSON[key].firstName + "</td>";
-                                rowData+="<td>" + availableAgents.responseJSON[key].lastName + "</td>";
-                                rowData+="<td>" + availableAgents.responseJSON[key].startDate + "</td>";
-                                rowData+="<td>" + availableAgents.responseJSON[key].endDate + "</td>";
-                                rowData+="<td>" + availableAgents.responseJSON[key].replacementAgent + "</td>";
-                                rowData+="<td>" + availableAgents.responseJSON[key].comment + "</td>";
-                                elementName.append(rowData);
-                        }                 
             });
-            
 
-            LoadGrid();
+                for (const [key, value] of Object.entries(userCollections)) {
+                    availableAgents.push(userCollections[key]);
+                }
+                logMessage(LOG_PREFIX, "debug", "Datatable cretion started ");
+                let table = $('#agentSelectionTable').DataTable({
+                    data: availableAgents,
+                    "columns": [{
+                        "data": "userName"
+                    },
+                    {
+                        "data": "firstName"
+                    },
+                    {
+                        "data": "lastName"
+                    },
+                    {
+                        "data": "startDate"
+                    },
+                    {
+                        "data": "endDate"
+                    },
+                    {
+                        "data": "replacementAgent"
+                    },
+                    {
+                        "data": "comment"
+                    }
+                    ],
+                    columnDefs: [{
+                        targets: 6,
+                        render: $.fn.dataTable.render.ellipsis(20)   //- working as expected
+                    }],
+                    "createdRow": function (row, data, index) {
+                        if (data.replacementAgent != "") {
+                            $('td', row).eq(5).addClass('highlight');  //Display text in the column in RED - working as expected
+                        }
+                    }
+                });
+
+				//highlight the row which is clicked by user - Not Working
+                $('#agentSelectionTable tbody').on('click', 'tr', function () {
+                    if ($(this).hasClass('selected')) {
+                        $(this).removeClass('selected');
+                    } else {
+                        table.$('tr.selected').removeClass('selected');
+                        $(this).addClass('selected');
+                    }
+                });
+
+				//Read value from selected row  - working as expected
+                $('#agentSelectionTable').on('click', 'td', function () {
+                    let table = $('#agentSelectionTable').DataTable();
+                    //let cell = table.cell(this).data();
+                    //console.log("Cell Data " + cell);
+
+                    let tr = $(this).closest('tr');
+
+
+                    if (table.row(tr).data().replacementAgent == "" && table.row(tr).data().comment == "") {
+                        $('#assigned_agent').val(table.row(tr).data().userName);
+                        $("#saveTransaction").prop('disabled', false);
+                        $("#deleteTransaction").prop('disabled', false);
+                        $("#clearTransaction").prop('disabled', true);
+                        $(".wwe-displayErrorMessage").hide();
+                        $(".wwe-displaySuccessMessage").hide();
+                    }
+                    else {
+                        $('#assigned_agent').val(selectedUserCollection.replacementAgent);
+                        $("#clearTransaction").prop('disabled', true);
+                        $("#deleteTransaction").prop('disabled', true);
+                        $("#saveTransaction").prop('disabled', true);
+                        $(".wwe-displaySuccessMessage").hide();
+                        $(".wwe-displayErrorMessage").show();
+                        $("#dispErrMessage").text(table.row(tr).data().comment);
+                    }
+
+                    //let row = table.row(tr).data().userName;
+                    //$("#assigned_agent").val(row);
+
+                    //logMessage(LOG_PREFIX, "debug", "Selected User Name " + row);
+                })
+            }
+            catch (dtError) {
+                logMessage(LOG_PREFIX, "info", "Error while creating agent list table " + dtError.message);
+            }
         });
-
-        function LoadGrid()
-        {
-            $('#example').DataTable();        
-        }
     </script>
     </head>
     <body>
