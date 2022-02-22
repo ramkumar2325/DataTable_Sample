@@ -2,9 +2,13 @@
     <head>
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">	<link rel="stylesheet" type="text/css" href="/style/datatables.min.css">
-	<script type="text/javascript" language="javascript" src="/scripts/jquery-3.6.0.js"></script>
-	<script type="text/javascript" language="javascript" src="/scripts/datatables.min.js"></script>
+    <meta charset="UTF-8">
+	    <script src="Scripts/jquery-3.6.0.js"></script>
+    <script src="Scripts/jquery-ui-1.13.1.js"></script>
+    <script type="text/javascript" language="javascript" src="scripts/jquery.dataTables.js"></script>
+    <script src="Scripts//ellipsis.js"></script>
+    <link rel="stylesheet" type="text/css" href="style/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="style/jquery-ui-1.13.1.css" />
     
     <style>
         body{
@@ -116,20 +120,20 @@
     </head>
     <body>
         <div class="container">
-        <table id="example" class="display" style="width:100%">
-            <thead>
-                <tr>
-                    <th>User Name</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Assigned Agent</th>
-                    <th>Comments</th>
-                </tr>
-            </thead>
-           
-        </table>
+        <table id="agentSelectionTable" class="compact" style="width:100%">
+                <thead>
+                       <tr>
+                            <th>User Name</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Start Date</th>
+                            <th>End Date</th>
+                            <th>Assigned Agent</th>
+                            <th>Comments</th>
+                       </tr>
+              </thead>
+
+     </table>
     </div>
     </body>
 </html>
