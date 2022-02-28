@@ -1,0 +1,1608 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <title></title>
+    <link href="style/fonts.css?version=8.5.202.50" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="style/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="style/jquery-ui-1.13.1.css" />
+    <link href="style/saas-all2.css?version=8.5.202.50" rel="stylesheet">
+    <script src="Scripts/ccs-cometd-client.js"></script>
+    <script src="Scripts/optum-wwe-config-lib.js"></script>
+    <script src="Scripts/omni-wwe-workbin-headers.js"></script>
+
+    <!--<script src="Scripts/jquery-3.3.1.js"></script>-->
+    <script src="Scripts/jquery-3.6.0.js"></script>
+    <script src="Scripts/jquery-ui-1.13.1.js"></script>
+    <script type="text/javascript" language="javascript" src="scripts/jquery.dataTables.js"></script>
+    <script src="Scripts/utils.js"></script>
+    <script src="Scripts/wwe-service-client-api.js"></script>
+    <script src="Scripts/config-manager.js"></script>
+    <script src="Scripts//ellipsis.js"></script>
+    <style>
+
+        thead {
+            color: white;
+            Font: 12px Roboto, Tahoma, Verdana, wwe-icons;
+            background-color: #3C474D;
+        }
+
+        td.highlight {
+            font-weight: bold;
+            color: red;
+        }
+
+        div.ww-contact-interaction-detail {
+            text-align: left;
+            margin-top: 10px;
+            overflow:auto;
+        }
+
+        div.wwe-tab-panel.wwe-case-tab-content.tab-pane.active {
+            line-height: 18px;
+            font-family: Roboto, Tahoma, Verdana, wwe-icons;
+            font-size: 12px;
+            color: #3c474d;
+            outline-color: #4CB2D2;
+            margin-top: -2px;
+            display: block;
+            background-color: #ffffff;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0px;
+            padding: 4px;
+            overflow: hidden !important;
+        }
+
+        div.wwe-workbins-grid-content {
+            color: #3C474D;
+            font: 12px Roboto, Tahoma, Verdana, wwe-icons;
+            background: #FFFFFF;
+            height: 150px;
+            overflow:hidden;
+        }
+
+        div.wwe-workbin-bottom-panel {
+            position: absolute;
+            top: 200px !important;
+            /*width: 1389.5px;*/
+        }
+
+        /*div.wwe-workbin-top-panel.ui-resizable {
+            color: #3C474D;
+            font: 12px Roboto, Tahoma, Verdana, wwe-icons;
+            background: #FFFFFF;*/
+            /*height: 190px;*/
+            /*margin: 4px;
+        }*/
+
+        .wwe-display-header {
+            color: #444A52;
+            font-weight: bold;
+            font-family: Roboto, Tahoma, Verdana, sans-seriff;
+            font-size: 13px;
+            text-align: center;
+            background-color: #F7F8F9;
+        }
+
+        .wwe-displaySuccessMessage {
+            color: #444A52;
+            font-weight: bold;
+            font-family: Roboto, Tahoma, Verdana, sans-seriff;
+            font-size: 13px;
+            text-align: center;
+            background-color: lightgreen;
+        }
+
+        .wwe-displayErrorMessage {
+            color: white;
+            font-weight: bold;
+            font-family: Roboto, Tahoma, Verdana, sans-seriff;
+            font-size: 13px;
+            text-align: center;
+            background-color: red;
+            word-wrap:break-word;
+        }
+
+        
+        
+        
+
+        .label {
+            color: #444A52;
+            font: 12px Roboto, Tahoma, Verdana, sans-seriff;
+        }
+
+        button.btn {
+            color: #3C474D;
+            font: 12px Roboto, Tahoma, Verdana, wwe-icons;
+            background: #E8E8E8;
+        }
+
+        #resp-table {
+            width: 60%;
+            display: table;
+            
+        }
+
+        #resp-table-body {
+            display: table-row-group;
+        }
+
+        .resp-table-row {
+            display: table-row;
+        }
+
+        .table-body-cell {
+            display: table-cell;
+            padding: 8px;
+            line-height: 1.5;
+            vertical-align: top;
+            width: auto;
+            font-weight: bold;
+            font-family: Roboto, Tahoma, Verdana, sans-seriff;
+            font-size: 12px;
+            color: #444A52;
+        }
+
+        table#agentSelectionTable.dataTable tbody tr:hover {
+            background-color: #ffa;
+        }
+
+        table#agentSelectionTable.dataTable tbody tr:hover > .sorting_1 {
+                background-color: #ffa;
+            }
+
+    </style>
+    <script>
+        var gwsURL = "https://dev2-wwe.uhc.com";
+        const CUSTOM_FEATURES_CONFIG_STORAGE_KEY = "custom.custom-features-config";
+        const LOG_PREFIX = "custom-ooo-reassignment";
+        const Out_Of_Office_Reassignment_List_Name = "custom.ooo.reassignment.list-name";
+        const Out_Of_Office_Reassignment_VAG_Names = "custom.ooo.reassignment.group-names";
+        const Out_Of_Office_Reassignment_Agent_Name_Display = "custom.ooo.reassignment.display.agent-name";
+        const Out_Of_Office_Reassignment_Skill_Filter = "custom.ooo.reassignment.skill.filter";
+        const Out_Of_Office_Reassignment_Config_API = "custom.ooo.reassignment.config-api.url";
+        const WORKSPACE_CUSTOM_OPTIONS_KEY = "workspace-custom-options";
+        const WORKSPACE_CUSTOM_OPTIONS_PREFIX = "custom.";
+        let currentUserResponse;
+        let listResponse;
+        let userCollections, selectedUserCollection, Out_Of_Office_Reassignment_List_Data, currentUserDisplayName, userTableBody, todaysDate, customToasterName;
+        let reassignedAgentCollections = new Array();
+        let customFeaturesConfig = new Object();
+        let userFirstName, userLastName, isSupervisor = false, showingTeamOOOReassignment = false,inputValidationTimeOut;
+        //customFeaturesConfig["custom.ooo.reassignment.list-name"] = "WWE_UHC_GovtOps_CareCoordination_OOO";
+        //customFeaturesConfig["custom.ooo.reassignment.group-names"] = "AG_UHC_GovtOps_CareCoordination_SMS_AllAgents";
+        //customFeaturesConfig["custom.ooo.reassignment.display.agent-name"] = "lname,fname";
+        //customFeaturesConfig["custom.ooo.reassignment.skill.filter"] = "lname,fname";
+        //customFeaturesConfig["custom.ooo.reassignment.config-api.url"] = "https://localhost:44318/api/ConfigManager";
+
+        //My Team View
+        let cachedSupervisorGroups;
+        let cachedUsers = {};
+
+        let lastUserSelected = "";
+        logMessage(LOG_PREFIX, "info", "feature is started");
+        //const gwsURL = getGwsUrl();
+
+
+
+        var workbinHeaders = {};
+
+        function ResizeOOOMainPanel() {
+            let win = $(this); //this = window
+            if (win.height() >= 20) {
+                let panelHeight = "" + (win.height() - 5) + "px;"
+                logMessage(LOG_PREFIX, "info", "Resizing height " + panelHeight);
+                $("#agent-desktop-container").attr("style", "height: " + panelHeight);
+                
+            }
+        }
+
+        $(document).ready(async function () {
+            logMessage(LOG_PREFIX, "info", "feature is started - document ready");
+            customFeaturesConfig = await getCustomFeaturesConfig(WORKSPACE_CUSTOM_OPTIONS_KEY, WORKSPACE_CUSTOM_OPTIONS_PREFIX);
+            ResizeOOOMainPanel();
+            let todayDate = formatDate(new Date());
+            try {
+                //$(".wwe-workbins-grid-content").prop("display", "none");
+                $(".wwe-workbins-grid-content").hide();
+                $(".ww-contact-interaction-detail").hide();
+                $(".wwe-displaySuccessMessage").hide();
+                $(".wwe-displayErrorMessage").hide();
+                //todaysDate = new Date(currentYear, currentMonth, data.getDay());
+                
+            }
+            catch (disableError) {
+                logMessage(LOG_PREFIX, "info", "Error while disabling DIV : " + disableError.message);
+            }
+
+            $("#ooo_user_name").attr("style", "none");
+            
+
+            const requestPath = "/api/v2/me";
+            currentUserResponse = await callGWSAPI("GET", requestPath);
+
+
+
+            //Read Transaction Object
+            const listRequestPath = '/api/v2/platform/configuration/transactions?name=' +
+                (customFeaturesConfig["custom.ooo.reassignment.list-name"] ? customFeaturesConfig["custom.ooo.reassignment.list-name"] :
+                    "WWE_ENT_Default_OOO") + '';
+            listResponse = await callGWSAPI("GET", listRequestPath);
+
+            genesys.wwe.service.subscribe(["system"], wweEventHandler, this);
+            //Logic to display remove OOO flag - condition check everyday user login
+            ValidateOOOExpiration(todayDate, currentUserResponse.user.userName);
+
+            //Read all agents from configured AG/VAG
+            userCollections = new Object();
+            ReadPersonsFromGroup();
+
+            setTimeout(function () { LoadView(currentUserResponse) }, 1500);
+
+            // add view event handlers
+            let myOOOReassignmentLink = $(".my-workbin-link");
+            myOOOReassignmentLink.click(DisplayMyOOOReassignment);
+            let teamOOOLink = $(".my-team-workbin-link");
+            teamOOOLink.click(ShowTeamOOOReassignment);
+            try {
+                $("#endDatePicker").datepicker({ dateFormat: "dd MM yy", showAnim: "slide" });
+                $("#startDatePicker").datepicker({ dateFormat: "dd MM yy", showAnim: "slide" });
+                $("#startDatePicker").on('change', function () {
+                    let selectedDate = formatDate($(this).val());
+                    if (selectedDate < todayDate) {
+                        $(".wwe-displayErrorMessage").show();
+                        $("#dispErrMessage").text((customFeaturesConfig["custom.ooo.reassignment.start-date.error-message"] ? customFeaturesConfig["custom.ooo.reassignment.start-date.error-message"] :
+                            "Start date must be greater than today date"));
+                        //alert('Selected date must be greater than today date');
+                        todaysDate = new Date();
+                        $("#startDatePicker").datepicker("setDate", "");
+                        if (inputValidationTimeOut)
+                            clearTimeout(inputValidationTimeOut);
+                        inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    }
+                    else
+                        $(".wwe-displayErrorMessage").hide();
+                });
+                $("#endDatePicker").on('change', function () {
+                    let selectedDate = formatDate($(this).val());
+                    let selectedStartDate = formatDate($("#startDatePicker").val());
+                    if ((selectedDate < todayDate) && (selectedStartDate > selectedDate)) {
+                        $(".wwe-displayErrorMessage").show();
+                        $("#dispErrMessage").text((customFeaturesConfig["custom.ooo.reassignment.end-date.error-message"] ? customFeaturesConfig["custom.ooo.reassignment.end-date.error-message"] :
+                            "Please verify the end date for Out Of Office, it should be greater than the start date "));
+                        //alert('Selected date must be greater than today date');
+                        todaysDate = new Date();
+                        $("#endDatePicker").datepicker("setDate", "");
+                        if (inputValidationTimeOut)
+                            clearTimeout(inputValidationTimeOut);
+                        inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    }
+                    else
+                        $(".wwe-displayErrorMessage").hide();
+                });
+            }
+            catch (dateValidation) {
+                logMessage(LOG_PREFIX, "info", "Error occurred while setting date validation : " + dateValidation.message);
+            }
+
+
+            //Create Available Agents
+            setTimeout(function () {
+                CreateAvailableAgentTable()
+            }, 1500);
+
+        });
+
+        $(window).on('resize', function () {
+            ResizeOOOMainPanel();
+        });
+
+
+        function ValidateOOOExpiration(todayDate, userName) {
+            try {
+                
+                if (listResponse && listResponse.transactions.length > 0) {
+                    if (listResponse.transactions[0].userProperties.hasOwnProperty(userName)) {
+                        if (todayDate >= listResponse.transactions[0].userProperties[userName].enddate) {
+                            PopupToasterAlertToWWE((listResponse.transactions[0].userProperties[userName].status == "true" ? "Alert" : "Warning"),
+                                (customFeaturesConfig["custom.ooo.reassignment.toast.title-message"] ? customFeaturesConfig["custom.ooo.reassignment.toast.title-message"] :
+                                    "Out Of Office Reassignment"),
+                                (customFeaturesConfig["custom.ooo.reassignment.toast.subject"] ? customFeaturesConfig["custom.ooo.reassignment.toast.subject"] :
+                                    "Alert Message"),
+                                (customFeaturesConfig["custom.ooo.reassignment.toast.body-message"] ? customFeaturesConfig["custom.ooo.reassignment.toast.body-message"] :
+                                    "Are you still Out Of Officev"),
+                                (customFeaturesConfig["custom.ooo.reassignment.toast.display.timeout"] ? customFeaturesConfig["custom.ooo.reassignment.toast.display.timeout"] :
+                                    "0"),
+                                (customFeaturesConfig["custom.ooo.reassignment.toast.send-to-mymessage"] ? customFeaturesConfig["custom.ooo.reassignment.toast.send-to-mymessage"] :
+                                    false));
+                        }
+                    }
+                    else
+                        logMessage(LOG_PREFIX, "debug", "User not found in the list object " + userResponse.user.userName);
+                }
+                else
+                    logMessage(LOG_PREFIX, "debug", "no data found in the list object ");
+            }
+            catch (validationException) {
+                logMessage(LOG_PREFIX, "info", "Error while checking OOO expiration update : " + validationException.message);
+            }
+        }
+
+        function PopupToasterAlertToWWE(msg_Type, msg_Title, msg_Subject, msg_Message,msg_Timeout,msg_SendToMyMessage) {
+            try {
+                let msgURL = "";
+                switch (msg_Type) {
+                    case "Alert":
+                        msgURL = document.location.origin + "/Scripts/icons/alert32.png";
+                        break;
+                    case "Error":
+                        msgURL = document.location.origin + "/Scripts/icons/alert32.png";
+                        break;
+                    case "Info":
+                        msgURL = document.location.origin + "/Scripts/icons/waring32.png";
+                        break;
+                    case "Warning":
+                        msgURL = document.location.origin + "/Scripts/icons/waring32.png";
+                        break
+                    default:
+                        msgURL = document.location.origin + "/Scripts/icons/waring32.png";
+                        break;
+                }
+                const buttonNames = ["Yes", "No"];
+                genesys.wwe.service.system.popupToast({
+                    title: msg_Title,
+                    iconUrl: msgURL,
+                    subject: msg_Subject,
+                    message: msg_Message,
+                    buttons: buttonNames,
+                    buttonShowDismiss: false,
+                    sendToMyMessage: (msg_SendToMyMessage === 'true' ? true : false),
+                    autoCloseTimeout: (msg_Timeout > 0 ? msg_Timeout : 0)
+                }, succeeded, failed);
+            }
+            catch (errorMessage) {
+                logMessage(LOG_PREFIX, "info", "Error while displaying toaster message : " + errorMessage.message);
+            }
+        }
+
+        
+        function succeeded(result) {
+            try {
+                logMessage(LOG_PREFIX, "debug", "Toaster Success Message : " + JSON.stringify(result));
+                customToasterName = (result !== undefined ? result.data : "");
+            }
+            catch (successMessage) {
+                logMessage(LOG_PREFIX, "info", "Error while displaying toaster success message : " + successMessage.message);
+                
+            }
+        }
+        function failed(result) {
+            try {
+                logMessage(LOG_PREFIX, "debug", "Toaster Failed Message : " + JSON.stringify(result));
+                customToasterName = "";
+            }
+            catch (failMessage) {
+                logMessage(LOG_PREFIX, "info", "Error while displaying toaster failure message : " + failMessage.message);
+            }
+        }
+
+        function wweEventHandler(event) {
+            try {
+                if (event !== undefined) {
+                    logMessage(LOG_PREFIX, "debug", "WWE System event triggered : " + JSON.stringify(event));
+                    if (event.data.eventType == "CUSTOM_TOAST_BUTTON_CLICK") {
+                        if (customToasterName == event.data.customToastId && event.data.buttonIndex == "0") {
+                            logMessage(LOG_PREFIX, "debug", "Agent clicked Yes on toaster initiated from OOO View - So no changes to his/her Out Of Office ");
+                        }
+                        else if (customToasterName == event.data.customToastId && event.data.buttonIndex == "1") {
+                            logMessage(LOG_PREFIX, "debug", "Agent clicked No on toaster initiated from OOO View - So cancelling his/her Out Of Office ");
+                            UpdatingListObject("DELETE");
+                        }
+                    }
+                }
+            }
+            catch (eventHandlerMessage) {
+                logMessage(LOG_PREFIX, "info", "Error while displaying toaster message : " + eventHandlerMessage.message);
+            }
+        }   
+
+
+        function LoadView(userResponse) {
+            try {
+                if (userResponse != null) {
+                    //userCollections = new Object();
+
+                    GetUserCollections(userResponse, "agent");
+
+                    if (userResponse && userResponse.user.roles) {
+                        for (let role in userResponse.user.roles) {
+                            if (userResponse.user.roles[role] == "ROLE_SUPERVISOR") {
+                                isSupervisor = true;
+                                $(".wwe-workbins-left-panel-top").attr("style", "bottom: 58px;");
+                                $(".my-team-workbin-link").attr("style", "display: block;");
+                                GetSupervisorGroups(userResponse.user.userName);
+                            }
+                            else {
+                                LoadMyOOOReassignment(userCollections[currentUserDisplayName]);
+                            }
+                        }
+                    }
+                }
+            } catch (userResponseError) {
+                logMessage(LOG_PREFIX, "info", "LoadView Error : " + userResponseError.message);
+            }
+        }
+
+        function GetUserCollections(userResponse, responseType) {
+            try {
+                let singleUserCollections = new Object();
+
+                singleUserCollections.firstName = (userResponse.user.firstName ? userResponse.user.firstName : "");
+                singleUserCollections.lastName = (userResponse.user.lastName ? userResponse.user.lastName : "");
+                singleUserCollections.displayName = "" + (userResponse.user.firstName ? userResponse.user.firstName : "") + " "
+                    + (userResponse.user.lastName ? userResponse.user.lastName : "");
+                singleUserCollections.userName = (userResponse.user.userName ? userResponse.user.userName : "No User Name");
+
+                userCollections[(singleUserCollections.userName ?
+                    singleUserCollections.userName : "No User Name")] = singleUserCollections;
+                logMessage(LOG_PREFIX, "debug", "GetUserCollections Agent : " + singleUserCollections.userName);
+                if (responseType == "agent") {
+                    currentUserDisplayName = (singleUserCollections.userName ? singleUserCollections.userName : "No User Name");
+                }
+            }
+            catch (userColError) {
+                logMessage(LOG_PREFIX, "info", "GetUserCollections Error : " + userColError.message);
+            }
+        }
+
+        function DisplayMyOOOReassignment(event) {
+            try {
+                let myOOOReassignmentLink = $(".my-workbin-link");
+                myOOOReassignmentLink.attr("class", "my-workbin-link active")
+                let teamOOOReassignmentLink = $(".my-team-workbin-link");
+                teamOOOReassignmentLink.attr("class", "my-team-workbin-link");
+                $(".wwe-my-workbins-list-container").attr("style", "display: block;");
+                $(".wwe-team-workbins-list-container").attr("style", "display: none;");
+                if (showingTeamOOOReassignment) {
+                    let isUserSelected = false;
+                    let nameList = $("#j1_1 > ul:first-of-type");
+                    nameList.children("li").each(function () {
+                        if ($(this).attr("aria-selected") === "true") {
+                            userDisplayName = $(this).attr("data-user-name");
+                            if (userDisplayName) {
+                                for (let index in cachedWorkbinItems) {
+                                    if (cachedWorkbinItems[index].id == userDisplayName) {
+                                        $("#wwe-workbins-workbin-region-tabs a").text(cachedWorkbinItems[index].displayName);
+                                        LoadMyOOOReassignment(singleUserCollections);
+                                        isUserSelected = true;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    if (!isUserSelected)
+                        ResetGroupUserDataContainer();
+
+
+                    showingTeamOOOReassignment = false;
+                }
+            }
+            catch (DisplayOOOError) {
+                logMessage(LOG_PREFIX, "info", "DisplayMyOOOReassignment Error : " + DisplayOOOError.message);
+            }
+        }
+
+        function LoadMyOOOReassignment(singleUserCollections) {
+            try {
+                $("j1_1").prop("title", (singleUserCollections.displayName ? singleUserCollections.displayName : "No User Name"));
+                //Make sure scheck the list object and update collections with those details
+                UserValidationWithListObject(singleUserCollections, singleUserCollections.userName);
+                AddSingleUserNameNode((singleUserCollections.displayName ? singleUserCollections.displayName : "No User Name"), singleUserCollections.userName);
+                let userList = $("#my-ooo-content");
+                userList.on("click", "li", SelectUserSchedule);
+
+                ////Call the method which enables the Available agent list
+                GetAvailableAgentList();
+            }
+            catch (userDisplayError) {
+                logMessage(LOG_PREFIX, "info", "LoadMyOOOReassignment Error : " + userDisplayError.message);
+            }
+        }
+
+        function loadCustomFeatureConfig() {
+            const customFeaturesConfigString = localStorage.getItem(CUSTOM_FEATURES_CONFIG_STORAGE_KEY);
+
+            if (customFeaturesConfigString) {
+                customFeaturesConfig = JSON.parse(customFeaturesConfigString);
+            }
+        }
+
+        function AddSingleUserNameNode(currentUserName, userName) {
+            try {
+
+                let userList = $("#my-ooo-content");
+                userList.off("click", "li");
+
+                let newNode = "<li title=\"" + currentUserName + "\" class=\"jstree-node category jstree-last jstree-open\" id=\"j1_1\" ";
+                newNode += "role=\"treeitem\" aria-expanded=\"true\" aria-selected=\"false\" aria-level=\"1\" aria-labelledby=\"j1_1_anchor\" data-user-name=\"" + userName + "\">";
+                newNode += "<i class=\"jstree-icon jstree-ocl\" role=\"presentation\"></i>";
+                newNode += "<a tabindex=\"-1\" class=\"jstree-anchor\" id=\"j1_1_anchor\">";
+                newNode += "<i class=\"jstree-icon jstree-themeicon\" role=\"presentation\">";
+                newNode += "</i>" + currentUserName;
+                newNode += "</a>";
+                newNode += "</li>";
+
+                userList.append(newNode);
+
+            }
+            catch (unNodeError) {
+                logMessage(LOG_PREFIX, "info", "AddUserNameNode Error : " + unNodeError.message);
+            }
+        }
+
+        function UserValidationWithListObject(singleUserCollections, userName) {
+            try {
+                logMessage(LOG_PREFIX, "debug", "Updating user collection object with list data after validation " + userName);
+                if (listResponse) {
+                    if (listResponse.transactions.length > 0) {
+                        if (listResponse.transactions[0].userProperties.hasOwnProperty(userName)) {
+                            singleUserCollections.startDate = (listResponse.transactions[0].userProperties[userName].startdate ?
+                                listResponse.transactions[0].userProperties[userName].startdate : "");
+                            singleUserCollections.endDate = (listResponse.transactions[0].userProperties[userName].enddate ?
+                                listResponse.transactions[0].userProperties[userName].enddate : "");
+                            singleUserCollections.status = (listResponse.transactions[0].userProperties[userName].status ?
+                                listResponse.transactions[0].userProperties[userName].status : "false");
+                            singleUserCollections.replacementAgent = (listResponse.transactions[0].userProperties[userName].replacementagent ?
+                                listResponse.transactions[0].userProperties[userName].replacementagent : "");
+                            singleUserCollections.isSelectable = "false";
+                            //avoid duplicate entry
+                            if (!reassignedAgentCollections.includes((listResponse.transactions[0].userProperties[userName].replacementagent ?
+                                listResponse.transactions[0].userProperties[userName].replacementagent + "|" + userName : "dummy"))) {
+                                reassignedAgentCollections.push((listResponse.transactions[0].userProperties[userName].replacementagent ?
+                                    listResponse.transactions[0].userProperties[userName].replacementagent + "|" + userName : "dummy"));
+                                logMessage(LOG_PREFIX, "debug", "reassignedAgentCollections : " + (listResponse.transactions[0].userProperties[userName].replacementagent ?
+                                    listResponse.transactions[0].userProperties[userName].replacementagent + "|" + userName : "dummy"));
+                            }
+                            singleUserCollections.comment = "Not Available";
+                            singleUserCollections.reassignedstartdate = "";
+                            singleUserCollections.reassignedenddate = "";
+                            logMessage(LOG_PREFIX, "info", userName + " found in the list object and updated ");
+                        }
+                        else {
+                            singleUserCollections.startDate = "";
+                            singleUserCollections.endDate = "";
+                            singleUserCollections.status = "";
+                            singleUserCollections.replacementAgent = "";
+                            singleUserCollections.isSelectable = "true";
+                            singleUserCollections.comment = "";
+                            singleUserCollections.reassignedstartdate = "";
+                            singleUserCollections.reassignedenddate = "";
+                            if (reassignedAgentCollections.length > 0) {
+                                reassignedAgentCollections.forEach((assignedAgentUserName) => {
+                                    const getUserName = assignedAgentUserName.split("|");
+                                    if (getUserName[0] == userName) {
+                                        let arrayIndex = reassignedAgentCollections.indexOf(getUserName[0]);
+                                        if (arrayIndex > -1) {
+                                            reassignedAgentCollections.splice(arrayIndex, 1);
+                                        }
+                                    }
+                                });
+                            }
+                            logMessage(LOG_PREFIX, "debug", userName + " user not found in the list object ");
+                        }
+                    }
+                    else {
+                        singleUserCollections.startDate = "";
+                        singleUserCollections.endDate = "";
+                        singleUserCollections.status = "";
+                        singleUserCollections.replacementAgent = "";
+                        singleUserCollections.isSelectable = "true";
+                        singleUserCollections.comment = "";
+                        singleUserCollections.reassignedstartdate = "";
+                        singleUserCollections.reassignedenddate = "";
+                        logMessage(LOG_PREFIX, "debug", userName + " user not found in the list object ");
+                    }
+                }
+                else
+                    logMessage(LOG_PREFIX, "debug", "No data found or list object returned null " +
+                        (customFeaturesConfig["custom.ooo.reassignment.list-name"] ? customFeaturesConfig["custom.ooo.reassignment.list-name"] :
+                            "WWE_ENT_Default_OOO"));
+
+                userCollections[userName] = singleUserCollections;
+
+            } catch (listError) {
+                logMessage(LOG_PREFIX, "info", "UserValidationWithListObject Error : " + listError.message);
+            }
+        }
+
+        function SelectUserSchedule(event) {
+            try {
+
+                if ($(event.currentTarget).siblings("LI"))
+                    $(event.currentTarget).siblings("LI").attr("aria-selected", "false");
+                let currentValue = $(event.currentTarget).attr("aria-selected");
+                $(event.currentTarget).attr("aria-selected", "true");
+
+                //this will avoid duplicate data on agent view
+                //ResetMyUserDataContainer();
+                $(".ww-contact-interaction-detail").hide();
+                $(".wwe-displaySuccessMessage").hide();
+                $(".wwe-displayErrorMessage").hide();
+
+                //Display agent first and last name in the tab
+                $("#wwe-workbins-workbin-region-tabs a").text(DisplayTabName($(event.currentTarget).attr("data-user-name")));
+
+                //Write logic to display values
+                DisplayUserDataOnRight($("#DataTables_Table_2_wrapper"), $(event.currentTarget).attr("data-user-name"));
+                try {
+                    //for (const [key, value] of Object.entries(userCollections)) {
+                    //    logMessage(LOG_PREFIX, "info", "User Collection : " + userCollections[key].displayName + " User Name: " +
+                    //        userCollections[key].userName);
+                    //    }
+                    logMessage(LOG_PREFIX, "debug", "User Collection : " + JSON.stringify(userCollections));
+                }
+                catch (printError) {
+                    logMessage(LOG_PREFIX, "info", "User collections printing error");
+                }
+                
+            }
+            catch (SelectUserScheduleError) {
+                logMessage(LOG_PREFIX, "info", " SelectUserSchedule : " + SelectUserScheduleError.message);
+            }
+        }
+
+        function ResetInteractionDetails() {
+            $("#wwe-workbins-panel-0").attr("class", "wwe-tab-panel wwe-case-tab-content tab-pane active");
+            $("#wwe-workbins-panel-1").attr("class", "wwe-tab-panel wwe-case-tab-content tab-pane");
+            $("#wwe-workbins-panel-2").attr("class", "wwe-tab-panel wwe-case-tab-content tab-pane");
+            $("#wwe-workbins-panel-4").attr("class", "wwe-tab-panel wwe-case-tab-content tab-pane");
+            $("#wwe-workbins-panel-5").attr("class", "wwe-tab-panel wwe-case-tab-content tab-pane");
+            $("#wwe-workbins-details-region-tabs").children("li").attr("class", "wwe-tab-top");
+            $("#wwe-workbins-details-region-tabs").children(":first-child").attr("class", "wwe-tab-top active");
+        }
+
+        function DisplayTabName(userName) {
+            try {
+                let UserInfo = userCollections[userName];
+
+                if (customFeaturesConfig["custom.ooo.reassignment.display.agent-name"] == "lname,fname")
+                    return UserInfo.lastName + ", " + UserInfo.firstName;
+                else if (customFeaturesConfig["custom.ooo.reassignment.display.agent-name"] == "fname,lname")
+                    return UserInfo.firstName + ", " + UserInfo.lastName;
+                else
+                    return UserInfo.lastName + ", " + UserInfo.firstName;
+
+            }
+            catch (tabNameError) {
+                logMessage(LOG_PREFIX, "info", "DisplatTabName Error: " + tabNameError.message);
+            }
+        }
+
+        function DisplayUserDataOnRight(divElementName, selectedUserName) {
+            try {
+                let UserInfo = userCollections[selectedUserName];
+                selectedUserCollection = new Object();
+                selectedUserCollection = userCollections[selectedUserName];
+                
+                todaysDate = new Date();
+                try {
+                    $(".wwe-workbins-grid-content").css("display", "block");
+                }
+                catch (disableError) {
+                    logMessage(LOG_PREFIX, "info", "Error while disabling DIV : " + disableError.message);
+                }
+
+                //Disable fields if value found
+
+                $("#startDatePicker").datepicker("setDate", $.datepicker.parseDate("yy-mm-dd", (UserInfo.startDate ? UserInfo.startDate : "")));
+                $("#endDatePicker").datepicker("setDate", $.datepicker.parseDate("yy-mm-dd", (UserInfo.endDate ? UserInfo.endDate : "")));
+                $("#assigned_agent").val((UserInfo.replacementAgent ? UserInfo.replacementAgent : ""));
+                $("#hdnUserName").val(selectedUserName);
+                $("#startDatePicker").prop('disabled', (UserInfo.startDate ? true : false));
+                $("#endDatePicker").prop('disabled', (UserInfo.endDate ? true : false));
+                $("#assigned_agent").prop('disabled', (UserInfo.replacementAgent ? true : false));
+
+                //Enable "Edit" button
+                if (UserInfo.replacementAgent != "" || UserInfo.endDate != "" || UserInfo.startDate != "") {
+                    $("#saveSpan").text("Edit");
+                    $("#saveTransaction").prop('disabled', false);
+                    $("#deleteTransaction").prop('disabled', true);
+                    $("#clearTransaction").prop('disabled', true);
+                }
+                else {
+                    $("#saveSpan").text("Save");
+                    $("#saveTransaction").prop('disabled', true);
+                    $("#clearTransaction").prop('disabled', true);
+                    $("#deleteTransaction").prop('disabled', true);
+                }
+
+                
+            }
+            catch (displayError) {
+                logMessage(LOG_PREFIX, "info", "DisplayUserDataOnRight : " + displayError.message);
+            }
+        }
+
+        function ClearDisplayMessage() {
+            $(".wwe-displaySuccessMessage").hide();
+            $(".wwe-displayErrorMessage").hide();
+        }
+
+        function InputValidation() {
+            try {
+
+                if ($("#assigned_agent").val() == "") {
+                    $(".wwe-displayErrorMessage").show();
+                    $("#dispErrMessage").text((customFeaturesConfig["custom.ooo.reassignment.agent.validation-message"] ?
+                        customFeaturesConfig["custom.ooo.reassignment.agent.validation-message"] :
+                        "Select agent from the list"));
+                    if (inputValidationTimeOut)
+                        clearTimeout(inputValidationTimeOut);
+                    inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    return false;
+                }
+                if ($("#endDatePicker").val() == "") {
+                    $(".wwe-displayErrorMessage").show();
+                    $("#dispErrMessage").text((customFeaturesConfig["custom.ooo.reassignment.end-date.validation-message"] ?
+                        customFeaturesConfig["custom.ooo.reassignment.end-date.validation-message"] :
+                        "Select End Date for Out Of Office"));
+                    if (inputValidationTimeOut)
+                        clearTimeout(inputValidationTimeOut);
+                    inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    return false;
+                }
+                if ($("#startDatePicker").val() == "") {
+                    $(".wwe-displayErrorMessage").show();
+                    $("#dispErrMessage").text((customFeaturesConfig["custom.ooo.reassignment.start-date.validation-message"] ?
+                        customFeaturesConfig["custom.ooo.reassignment.start-date.validation-message"] :
+                        "Select Start Date for Out Of Office"));
+                    if (inputValidationTimeOut)
+                        clearTimeout(inputValidationTimeOut);
+                    inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    return false;
+                }
+                let startDate = formatDate($("#startDatePicker").val());
+                let endDate = formatDate($("#endDatePicker").val());
+                if (endDate < startDate) {
+                    $(".wwe-displayErrorMessage").show();
+                    $("#dispErrMessage").text((customFeaturesConfig["custom.ooo.reassignment.end-date.error-message"] ? customFeaturesConfig["custom.ooo.reassignment.end-date.error-message"] :
+                        "Please verify the end date for Out Of Office, it should be greater than the start date "));
+                    if (inputValidationTimeOut)
+                        clearTimeout(inputValidationTimeOut);
+                    inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    return false;
+                }
+                let assignedEndDate = ($("#hdnassgEndDate").val().includes("&") ? $("#hdnassgEndDate").val().split("&") : $("#hdnassgEndDate").val());
+                if ($("#hdnassgEndDate").val().includes("&")) {
+                    if (typeof assignedEndDate !== 'undefined' && assignedEndDate.length > 0) {
+                        for (let index = 0; index < assignedEndDate.length; index++) {
+                            if (startDate <= assignedEndDate[index]) {
+                                logMessage(LOG_PREFIX, "debug", "date validation for already assigned agent selection ");
+                                $(".wwe-displayErrorMessage").show();
+                                $("#dispErrMessage").text((userCollections[$("#assigned_agent").val()] ?
+                                    userCollections[$("#assigned_agent").val()].firstName + " ," +
+                                    userCollections[$("#assigned_agent").val()].lastName : $("#assigned_agent").val()) + " is not available for selected date so, please select alternate dates");
+                                if (inputValidationTimeOut)
+                                    clearTimeout(inputValidationTimeOut);
+                                inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                                return false;
+                            }
+                        }
+                    }
+                }
+                else if (typeof assignedEndDate !== 'undefined' && startDate <= assignedEndDate) {
+                    logMessage(LOG_PREFIX, "debug", "date validation for already assigned agent selection ");
+                    $(".wwe-displayErrorMessage").show();
+                    $("#dispErrMessage").text((userCollections[$("#assigned_agent").val()] ?
+                        userCollections[$("#assigned_agent").val()].firstName + " ," +
+                        userCollections[$("#assigned_agent").val()].lastName : $("#assigned_agent").val()) + " is not available for selected date , please select alternate dates");
+                    if (inputValidationTimeOut)
+                        clearTimeout(inputValidationTimeOut);
+                    inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    return false;
+                }
+
+                $(".wwe-displayErrorMessage").hide();
+                return true;
+            }
+            catch (inputValidationError) {
+                logMessage(LOG_PREFIX, "info", "Error while validating inputs  : " + inputValidationError.message);
+            }
+        }
+
+        function SaveTransaction() {
+            try {
+                logMessage(LOG_PREFIX, "info", "Executing Save Transaction process");
+                if ($("#saveSpan").text() == "Edit") {
+                    $("#saveSpan").text("Save");
+                    $("#saveTransaction").prop('disabled', false);
+                    $("#clearTransaction").prop('disabled', false);
+                    $("#deleteTransaction").prop('disabled', false);
+                    $("#startDatePicker").prop('disabled', false);
+                    $("#endDatePicker").prop('disabled', false);
+                    $("#assigned_agent").prop('disabled', false);
+
+                    //let staDate = $("startDatePicker").text();
+                    DisplayAvailableAgentList();
+
+                } else if ($("#saveSpan").text() == "Save") {
+                    //Validation
+                    if (InputValidation()) {
+                        
+                        //Logic to save data in List Object
+                        UpdatingListObject("PUT");
+
+
+                    }
+                }
+            }
+            catch (saveError) {
+                logMessage(LOG_PREFIX, "info", "Error occured while saving the transaction : " + saveError.message);
+            }
+        }
+
+        function DisplayAvailableAgentList() {
+            try {
+                $("#saveTransaction").prop('disabled', false);
+                $(".ww-contact-interaction-detail").css("display", "block");
+            }
+            catch (displayError) {
+                logMessage(LOG_PREFIX, "info", "Error occured while displaying agnet list : " + displayError.message);
+            }
+        }
+
+        function ClearTransaction() {
+            try {
+                logMessage(LOG_PREFIX, "info", "Executing Clear Transaction process");
+                todaysDate = new Date();
+                $("#saveSpan").text("Save");
+                $("#saveTransaction").prop('disabled', false);
+                $("#clearTransaction").prop('disabled', true);
+                $("#deleteTransaction").prop('disabled', false);
+                $(".wwe-displaySuccessMessage").hide();
+                $(".wwe-displayErrorMessage").hide();
+                //getMonth return month in number and Month start from 0-11.  ex., 0=January, 1=Feb ... 11=Dec.  So adding 1 to display month in datepicker
+                //$("#startDatePicker").datepicker("setDate", $.datepicker.parseDate("yy-mm-dd", todaysDate.getFullYear() + "-" + (todaysDate.getMonth()+1) + "-" + todaysDate.getDate()));
+                //$("#endDatePicker").datepicker("setDate", $.datepicker.parseDate("yy-mm-dd", todaysDate.getFullYear() + "-" + (todaysDate.getMonth() + 1) + "-" + todaysDate.getDate()));
+                //$("#assigned_agent").val("");
+                $("#startDatePicker").datepicker("setDate", $.datepicker.parseDate("yy-mm-dd", (selectedUserCollection.startDate ? selectedUserCollection.startDate : "")));
+                $("#endDatePicker").datepicker("setDate", $.datepicker.parseDate("yy-mm-dd", (selectedUserCollection.endDate ? selectedUserCollection.endDate : "")));
+                $("#assigned_agent").val((selectedUserCollection.replacementAgent ? selectedUserCollection.replacementAgent : ""));
+            }
+            catch (clearError) {
+                logMessage(LOG_PREFIX, "info", "Error occured while clearing the data on screen : " + clearError.message);
+            }
+        }
+
+        function DeleteTransaction() {
+            try {
+                logMessage(LOG_PREFIX, "info", "Executing Delete Transaction process");
+                if (InputValidation()) {
+                    //after successful delete, disable all buttons
+                    UpdatingListObject("DELETE");
+                }
+            }
+            catch (deleteError) {
+                logMessage(LOG_PREFIX, "info", "Error occured while deleting the transaction : " + deleteError.message);
+            }
+        }
+
+        async function ReadTransactionListObject() {
+            try {
+                const listRequestPath = '/api/v2/platform/configuration/transactions?name=' +
+                    (customFeaturesConfig["custom.ooo.reassignment.list-name"] ? customFeaturesConfig["custom.ooo.reassignment.list-name"] :
+                        "WWE_ENT_Default_OOO") + '';
+                listResponse = await callGWSAPI("GET", listRequestPath);
+
+                logMessage(LOG_PREFIX, "debug", "Retrieved Transaction Object ");
+            } catch (listError) {
+                logMessage(LOG_PREFIX, "info", "Error while reading List Object " + listError.message);
+            }
+        }
+
+        //My Team OOO
+        async function GetSupervisorGroups(SupervisorUserName) {
+            try {
+
+                logMessage(LOG_PREFIX, "debug", "Reading Supervisor group details ");
+                const requestPath = "/api/v2/me/groups?fields=*&subresources=supervisors&type=BusinessUnit";
+                const response = await callGWSAPI("GET", requestPath);
+
+                logMessage(LOG_PREFIX, "debug", "Supervisor Group response" + response);
+
+                ProcessSupervisorGroups(response.groups, SupervisorUserName);
+            }
+            catch (supGroupError) {
+                logMessage(LOG_PREFIX, "info", "Error while reading Supervisor groups " + supGroupError.message);
+            }
+        }
+
+        function ProcessSupervisorGroups(groupList, SupervisorUserName) {
+            try {
+                cachedSupervisorGroups = groupList;
+                let userList = $("#my-workbins-user-list-content")
+                userList.empty();
+                cachedUsers = {};
+                logMessage(LOG_PREFIX, "debug", "Clearing TeamView - ProcessSupervisorGroups");
+                for (let index in groupList) {
+                    if (IsSupervisorGroup(groupList[index], SupervisorUserName)) {
+                        GetGroupMembers(groupList[index].id);
+                    }
+                }
+                userList.off("click");
+                userList.on("click", "li", SelectUserSchedule);
+            }
+            catch (supGroupError) {
+                logMessage(LOG_PREFIX, "info", "Error while processing Supervisor groups " + supGroupError.message);
+            }
+        }
+
+        function IsSupervisorGroup(currGroup, userName) {
+            if (currGroup.supervisors && currGroup.supervisors.length > 0) {
+                for (let index in currGroup.supervisors) {
+                    if (currGroup.supervisors[index].userName == userName) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        async function UpdatingListObject(operationType) {
+            try {
+                let jsonPayload = '{"ListName":"' + customFeaturesConfig["custom.ooo.reassignment.list-name"]
+                    + '","UserProperties":{"' + ($("#hdnUserName").val() == "" ? currentUserResponse.user.userName :
+                        $("#hdnUserName").val()) + '":[{"status":"true","startdate":"' +
+                    ($("#startDatePicker").val() == "" ? formatDate(new Date()) : formatDate($("#startDatePicker").val())) +
+                    '","enddate":"' +
+                    ($("#endDatePicker").val() == "" ? formatDate(new Date()) : formatDate($("#endDatePicker").val())) +
+                    '","replacementagent":"'
+                    + ($("#assigned_agent").val() == "" ? "dummy" : $("#assigned_agent").val()) + '"} ]}}';
+                const requestPath = customFeaturesConfig["custom.ooo.reassignment.config-api.url"];
+
+                let request = new XMLHttpRequest();
+                request.open(operationType, requestPath);
+                request.setRequestHeader("Content-Type", "application/json");
+                request.withCredentials = true;
+                request.onload = function () {
+                    let response = jQuery.parseJSON(request.responseText);
+                    //DisplayWWEMessage(".wwe-contact-directory-top .wwe-alert-container", "List updated successfully");
+                    if (response.APIResponse.Code == "100") {
+                        $(".wwe-displaySuccessMessage").show();
+                        $("#dispSuccMessage").text(response.APIResponse.Message);
+                        //remove existing re-assigned agent for this User
+                        if (reassignedAgentCollections.length > 0) {
+                            reassignedAgentCollections.forEach((assignedAgentUserName) => {
+                                const getUserName = assignedAgentUserName.split("|");
+                                if (getUserName[1] == ($("#hdnUserName").val() == "" ? currentUserResponse.user.userName :
+                                    $("#hdnUserName").val())) {
+                                    let arrayIndex = reassignedAgentCollections.indexOf(getUserName[0] + "|" + getUserName[1]);
+                                    if (arrayIndex > -1) {
+                                        reassignedAgentCollections.splice(arrayIndex, 1);
+                                    }
+                                    if (userCollections[getUserName[0]]) {
+                                        userCollections[getUserName[0]].comment = "";//This user is now available for reassignment
+                                    }
+                                }
+                            });
+                        }
+                        
+                        ReadTransactionListObject();
+
+                        setTimeout(RefreshTable, 1000);
+                        if (inputValidationTimeOut)
+                            clearTimeout(inputValidationTimeOut);
+                        inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                    }
+                    else {
+                        $(".wwe-displayErrorMessage").show();
+                        $("#dispErrMessage").text(response.APIResponse.Message);
+                    }
+
+                    if (operationType == "PUT") {
+                        $("#saveTransaction").prop('disabled', true);
+                        $("#clearTransaction").prop('disabled', true);
+                        $("#deleteTransaction").prop('disabled', false);
+                        logMessage(LOG_PREFIX, "info", "Executing Save Transaction process ");
+                    }
+                    else if (operationType == "DELETE") {
+                        todaysDate = new Date();
+                        $("#saveSpan").text("Save");
+                        $("#saveTransaction").prop('disabled', true);
+                        $("#clearTransaction").prop('disabled', true);
+                        $("#deleteTransaction").prop('disabled', true);
+                        $("#startDatePicker").datepicker("setDate", "");
+                        $("#endDatePicker").datepicker("setDate", "");
+                        $("#assigned_agent").val("");
+                    }
+
+                };
+                request.send(jsonPayload);
+            }
+            catch (supGroupError) {
+                logMessage(LOG_PREFIX, "info", "Error while updating/deleting list object " + supGroupError.message);
+            }
+        }
+
+        function RefreshTable() {
+            try {
+                let table = $('#agentSelectionTable').DataTable();
+                UserValidationWithListObject(userCollections[($("#hdnUserName").val() == "" ? currentUserResponse.user.userName :
+                    $("#hdnUserName").val())], ($("#hdnUserName").val() == "" ? currentUserResponse.user.userName :
+                        $("#hdnUserName").val()));
+                GetAvailableAgentList();
+                //Create Available Agents
+                let availableAgents = new Array();
+
+                for (const [key, value] of Object.entries(userCollections)) {
+                    if (key != ($("#hdnUserName").val() == "" ? currentUserResponse.user.userName :
+                        $("#hdnUserName").val()))
+                        availableAgents.push(userCollections[key]);
+                }
+                table.clear();
+
+                table.rows.add(availableAgents).draw();
+
+            }
+            catch (supGroupError) {
+                logMessage(LOG_PREFIX, "info", "Error while refreshing table " + supGroupError.message);
+            }
+        }
+
+        function SelectedUserRefreshTable(UserName) {
+            try {
+                let table = $('#agentSelectionTable').DataTable();
+                
+                //Create Available Agents
+                let availableAgents = new Array();
+
+                for (const [key, value] of Object.entries(userCollections)) {
+                    if (key != UserName)
+                        availableAgents.push(userCollections[key]);
+                }
+                table.clear();
+
+                table.rows.add(availableAgents).draw();
+
+            }
+            catch (supGroupError) {
+                logMessage(LOG_PREFIX, "info", "Error while refreshing table " + supGroupError.message);
+            }
+        }
+
+
+        async function GetGroupMembers(groupId) {
+            try {
+
+                logMessage(LOG_PREFIX, "debug", "Ready User Details with group ID " + groupId);
+                const requestPath = "/api/v2/groups/" + groupId +
+                    "/users?subresources=*&fields=*&limit=100&offset=0&order=Ascending&roles=ROLE_AGENT&sortBy=lastName,firstName";
+                const response = await callGWSAPI("GET", requestPath);
+                logMessage(LOG_PREFIX, "debug", "Get Group Member response " + response);
+                UpdateUserList(response.users);
+
+            }
+            catch (supGroupError) {
+                logMessage(LOG_PREFIX, "info", "Error while Get Group Members " + supGroupError.message);
+            }
+        }
+
+        function UpdateUserList(groupMembers) {
+            try {
+                logMessage(LOG_PREFIX, "debug", "Updating User list for Supervisor Tree View");
+                let userList = $("#my-workbins-user-list-content")
+
+                for (let index in groupMembers) {
+                    if (!(groupMembers[index].id in cachedUsers)) {
+                        logMessage(LOG_PREFIX, "debug", "UpdateUserList - new user added " + groupMembers[index].userName);
+
+                        GetUserCollections(groupMembers[index], "group");
+                        UserValidationWithListObject(userCollections[groupMembers[index].userName], (groupMembers[index] ? groupMembers[index].userName : "No User Name"));
+                        AddUserNode(userList, groupMembers[index], Object.keys(cachedUsers).length + 2);
+                        cachedUsers[groupMembers[index].id] = groupMembers[index];
+                        //sortedcachedUsers[groupMembers[index].userName] = groupMembers[index];
+                    }
+                }
+                //logMessage(LOG_PREFIX, "info", "Cached Uses " + JSON.stringify(sortedcachedUsers));
+                //Call the method which enables the Available agent list
+                GetAvailableAgentList();
+            }
+            catch (supGroupError) {
+                logMessage(LOG_PREFIX, "info", "Error while UpdateUserList for Supervisor view " + supGroupError.message);
+            }
+        }
+
+        function AddUserNode(userList, userItem, count) {
+            try {
+                let displayName = "" + userItem.firstName + " " + userItem.lastName;
+                let newNode = "<li title=\"" + displayName + "\" class=\"jstree-node agent jstree-closed\" id=\"j3_" + count + "\" ";
+                newNode += "role=\"treeitem\" aria-expanded=\"false\" aria-selected=\"false\" aria-level=\"1\" aria-labelledby=\"j3_1_anchor\" data-user-name=\"" + userItem.userName + "\">";
+                newNode += "<i class=\"jstree-icon jstree-ocl\" role=\"presentation\"></i>";
+                newNode += "<a tabindex=\"-1\" class=\"jstree-anchor jstree-clicked\" id=\"j3_1_anchor\">";
+                newNode += "<i class=\"jstree-icon jstree-themeicon\" role=\"presentation\">";
+                if (listResponse.transactions[0].userProperties.hasOwnProperty(userItem.userName))
+                    newNode += "</i><span STYLE='font-weight:bold'>" + displayName + "</span>";
+                else
+                    newNode += "</i>" + displayName;
+                newNode += "</a>";
+                newNode += "</li>";
+                userList.append(newNode);
+            }
+            catch (nodeError) {
+                logMessage(LOG_PREFIX, "info", "Error while loading supervisor nodes " + nodeError.message);
+            }
+        }
+
+        function ShowTeamOOOReassignment(event) {
+            let myOOOViewLink = $(".my-workbin-link");
+            myOOOViewLink.attr("class", "my-workbin-link")
+            var teamOOOViewLink = $(".my-team-workbin-link");
+            teamOOOViewLink.attr("class", "my-team-workbin-link active");
+            $(".wwe-my-workbins-list-container").attr("style", "display: none;");
+            $(".wwe-team-workbins-list-container").attr("style", "display: block;");
+
+            if (!showingTeamOOOReassignment) {
+                let workbinSelected = false;
+                let userContainer = $("#my-workbins-user-list-content")
+                userContainer.children("li").each(function () {
+                    let agentId = $(this).attr("data-agent-id");
+                    let agentUl = $("#user_" + agentId);
+                    agentUl.children("li").each(function () {
+                        if ($(this).attr("aria-selected") === "true") {
+                            selectedUserName = $(this).attr("data-user-name");
+                            if (selectedUserName) {
+                                if (cachedUsers[agentId] && cachedUsers[agentId][workbinId]) {
+                                    $("#wwe-workbins-workbin-region-tabs a").text(cachedUsers[agentId][workbinId].displayName);
+                                    //UpdateWorkbinItems(cachedUsers[agentId][workbinId]);
+                                    workbinSelected = true;
+                                }
+                            }
+                        }
+                    });
+                });
+                if (!workbinSelected)
+                    ResetGroupUserDataContainer();
+
+
+                showingTeamOOOReassignment = true;
+            }
+        }
+
+        function ResetGroupUserDataContainer() {
+
+            //let tableBody = $("#DataTables_Table_2 > tbody:first-of-type");
+            //tableBody.empty();
+
+            //let singleUserTableBody = $("#DataTables_Table_2_wrapper");
+            //singleUserTableBody.empty();
+            try {
+                //$(".wwe-workbins-grid-content").prop("display", "none");
+                $(".wwe-workbins-grid-content").hide();
+                $(".ww-contact-interaction-detail").hide();
+                $(".wwe-displaySuccessMessage").hide();
+                $(".wwe-displayErrorMessage").hide();
+                $("#wwe-workbins-workbin-region-tabs a").text("No User Selected");
+                todaysDate = new Date();
+                $("#startDatePicker").datepicker("setDate", "");
+                $("#endDatePicker").datepicker("setDate", "");
+                $("#assigned_agent").val("");
+            }
+            catch (disableError) {
+                logMessage(LOG_PREFIX, "info", "Error in ResetGroupUserDataContainer : " + disableError.message);
+            }
+
+        }
+        
+        //End
+        let indexKey = 1;
+        //No. of times this method called based on the list of agent group which supervisor is monitoring
+        function GetAvailableAgentList() {
+            try {
+                if (reassignedAgentCollections.length > 0) {
+                    reassignedAgentCollections.forEach((assignedAgentUserName) => {
+                        logMessage(LOG_PREFIX, "debug", "Assigned Agent Name : " + assignedAgentUserName);
+                        const getUserName = assignedAgentUserName.split("|");
+                        if (userCollections[getUserName[0]]) {
+                            userCollections[getUserName[0]].isSelectable = "true";
+                            if (userCollections[getUserName[0]].comment == "") {
+                                logMessage(LOG_PREFIX, "debug", "No comment available for assigned agent : " + assignedAgentUserName);
+                                userCollections[getUserName[0]].comment = "Assigned to " + userCollections[getUserName[1]].firstName + "," +
+                                    userCollections[getUserName[1]].lastName + "(" + userCollections[getUserName[1]].userName + ") from " +
+                                    userCollections[getUserName[1]].startDate + " to " +
+                                    userCollections[getUserName[1]].endDate;
+                                userCollections[getUserName[0]].reassignedstartdate = userCollections[getUserName[1]].startDate;
+                                userCollections[getUserName[0]].reassignedenddate = userCollections[getUserName[1]].endDate;
+                            }
+                            else if (userCollections[getUserName[0]].comment == "Not Available")
+                            {
+                                logMessage(LOG_PREFIX, "debug", "existing comment is Not Available : " + assignedAgentUserName);
+                                userCollections[getUserName[0]].comment += "\n and Assigned to " + userCollections[getUserName[1]].firstName + "," +
+                                    userCollections[getUserName[1]].lastName + "(" + userCollections[getUserName[1]].userName + ") from " +
+                                    userCollections[getUserName[1]].startDate + " to " +
+                                    userCollections[getUserName[1]].endDate;
+                                userCollections[getUserName[0]].reassignedstartdate += "&" + userCollections[getUserName[1]].startDate;
+                                userCollections[getUserName[0]].reassignedenddate += "&" + userCollections[getUserName[1]].endDate;
+                            }
+                            else if (userCollections[getUserName[0]].comment.indexOf(userCollections[getUserName[1]].firstName) == -1) {
+                                logMessage(LOG_PREFIX, "debug", "existing comment available for assigned agent : " + assignedAgentUserName);
+                                userCollections[getUserName[0]].comment += "\n and " + userCollections[getUserName[1]].firstName + "," +
+                                    userCollections[getUserName[1]].lastName + "(" + userCollections[getUserName[1]].userName + ") from " +
+                                    userCollections[getUserName[1]].startDate + " to " +
+                                    userCollections[getUserName[1]].endDate;
+                                userCollections[getUserName[0]].reassignedstartdate += "&" + userCollections[getUserName[1]].startDate;
+                                userCollections[getUserName[0]].reassignedenddate += "&" + userCollections[getUserName[1]].endDate;
+                            }
+                            
+                            
+                            logMessage(LOG_PREFIX, "debug", "Team Assigned User Details : " + userCollections[getUserName[0]].displayName + " User Name: " +
+                                userCollections[getUserName[0]].userName);
+                        }
+                    })
+                }
+            }
+            catch (availAgentError) {
+                logMessage(LOG_PREFIX, "info", "Error while collecting available agent list in the collections " + availAgentError.message);
+            }
+        }
+
+        async function ReadPersonsFromGroup() {
+            try {
+                //this will provide list of person dbid from the Agent group
+                const requestPath = "/api/v2/me/groups?type=BusinessUnit&fields=*";
+                const result = await callGWSAPI("GET", requestPath);
+                const configAGName = (customFeaturesConfig["custom.ooo.reassignment.group-names"] ?
+                    customFeaturesConfig["custom.ooo.reassignment.group-names"] : "AG_UHC_GovtOps_CareCoordination_SMS_AllAgents");
+                $.each(result.groups, function (key, value) {
+                    if (value.name == configAGName) {
+                        logMessage(LOG_PREFIX, "debug", "Group Name : " + value.name);
+                        logMessage(LOG_PREFIX, "debug", "Group ID : " + value.id);
+                        ReadPersonObject(value.id);
+                    }
+                });
+            }
+            catch (readAGError) {
+                logMessage(LOG_PREFIX, "info", "Error while users list from the given agent group " + readAGError.message);
+            }
+        }
+
+        async function ReadPersonObject(groupID) {
+            try {
+                const requestPath = "/groups/" + groupID + "/users?";
+                const result = await callGWSAPI("GET", requestPath);
+                $.each(result.users, function (key, value) {
+                    logMessage(LOG_PREFIX, "debug", "User Name : " + value.userName);
+                    let singleUserCollections = new Object();
+                    singleUserCollections.firstName = (value.firstName ? value.firstName : "");
+                    singleUserCollections.lastName = (value.lastName ? value.lastName : "");
+                    singleUserCollections.displayName = "" + (value.firstName ? value.firstName : "") + " "
+                        + (value.lastName ? value.lastName : "");
+                    singleUserCollections.userName = (value.userName ? value.userName : "No User Name");
+
+                    userCollections[(value.userName ?
+                        value.userName : "No User Name")] = singleUserCollections;
+                    UserValidationWithListObject(userCollections[value.userName], value.userName);
+                });
+
+            }
+            catch (readPersonError) {
+                logMessage(LOG_PREFIX, "info", "Error reading the person object " + readPersonError.message);
+            }
+        }
+
+        function CreateAvailableAgentTable() {
+            try {
+
+                let availableAgents = new Array();
+
+                for (const [key, value] of Object.entries(userCollections)) {
+                    if (key != currentUserDisplayName)
+                        availableAgents.push(userCollections[key]);
+                    //logMessage(LOG_PREFIX, "debug", JSON.stringify(userCollections[key]));
+                }
+                logMessage(LOG_PREFIX, "debug", "Datatable cretion started ");
+                let table = $('#agentSelectionTable').DataTable({                    
+                    data: availableAgents,
+                    "columns": [{
+                        "data": "userName"
+                    },
+                    {
+                        "data": "firstName"
+                    },
+                    {
+                        "data": "lastName"
+                    },
+                    {
+                        "data": "startDate"
+                    },
+                    {
+                        "data": "endDate"
+                    },
+                    {
+                        "data": "replacementAgent"
+                    },
+                    {
+                        "data": "comment"
+                    }
+                    ],
+                    columnDefs: [{
+                        targets: 6,
+                        render: $.fn.dataTable.render.ellipsis(20)
+                    }],
+                    "createdRow": function (row, data, index) {
+                        if (data.replacementAgent != "") {
+                            $('td', row).eq(5).addClass('highlight');
+                        }
+                    }                    
+                });
+
+                $('#agentSelectionTable').on('click', 'td', function () {
+                    let table = $('#agentSelectionTable').DataTable();
+                    //let cell = table.cell(this).data();
+                    //console.log("Cell Data " + cell);
+
+                    let tr = $(this).closest('tr');
+
+                    
+                    if (table.row(tr).data().userName == $("#hdnUserName").val()) {
+                        $(".wwe-displayErrorMessage").show();
+                        $("#dispErrMessage").text("Same user cannot be assigned as replacement agent");
+                        if (inputValidationTimeOut)
+                            clearTimeout(inputValidationTimeOut);
+                        inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                        //setTimeout(function () {
+                        //    $(".wwe-displayErrorMessage").hide();
+                        //}, 10000);
+                    }
+                    else {
+                        $('#assigned_agent').val(table.row(tr).data().userName);
+                        $("#saveTransaction").prop('disabled', false);
+                        $("#deleteTransaction").prop('disabled', false);
+                        $("#clearTransaction").prop('disabled', false);
+                        $(".wwe-displayErrorMessage").hide();
+                        $(".wwe-displaySuccessMessage").hide();
+                        $(".wwe-displayErrorMessage").show();
+                        $("#dispErrMessage").text(table.row(tr).data().comment);
+                        if (inputValidationTimeOut)
+                            clearTimeout(inputValidationTimeOut);
+                        inputValidationTimeOut = setTimeout(ClearDisplayMessage, 10000);
+                        //setTimeout(function () {
+                        //    $(".wwe-displayErrorMessage").hide();
+                        //}, 10000);
+                    }
+
+                    if (table.row(tr).data().comment == "") {
+                        $("#hdnassgStartDate").val("");
+                        $("#hdnassgEndDate").val("");
+                        $("#hdnassgFor").val("");
+                    }
+                    else if (table.row(tr).data().comment == "Not Available") {
+                        $("#hdnassgStartDate").val(table.row(tr).data().startDate);
+                        $("#hdnassgEndDate").val(table.row(tr).data().endDate);
+                        $("#hdnassgFor").val(table.row(tr).data().replacementAgent);
+                    }
+                    else {
+                        $("#hdnassgStartDate").val((userCollections[table.row(tr).data().userName] ? userCollections[table.row(tr).data().userName].reassignedstartdate :
+                            formatDate(new Date())));
+                        $("#hdnassgEndDate").val((userCollections[table.row(tr).data().userName] ? userCollections[table.row(tr).data().userName].reassignedenddate :
+                            formatDate(new Date())));
+                        //to display name in the message - we can able to get the name from user collections but to avoid loop below logic is written
+                        //$("#hdnassgFor").val(table.row(tr).data().comment.replace("Assigned to ", "").substring(0, (result.indexOf("from") - 1)));
+                        $("#hdnassgFor").val(table.row(tr).data().comment.replace("Assigned to ", ""));
+                    }
+
+                    
+                })
+            }
+            catch (dtError) {
+                logMessage(LOG_PREFIX, "info", "Error while creating agent list table " + dtError.message);
+            }
+        }
+
+        function formatDate(date) {
+            var d = new Date(date),
+                month = '' + (d.getMonth() + 1),
+                day = '' + d.getDate(),
+                year = d.getFullYear();
+
+            if (month.length < 2)
+                month = '0' + month;
+            if (day.length < 2)
+                day = '0' + day;
+
+            return [year, month, day].join('-');
+        }
+
+        function DisplayWWEMessage(areaSelector, messageToSend) {
+            try {
+
+                $(".desktopContainerNonSuccessMessage").css("display", "block");
+                $("#alert-message").val(messageToSend);
+
+            }
+            catch (displayMessage) {
+                logMessage(LOG_PREFIX, "info", "Error while displaying error messages " + displayMessage.message);
+            }
+        }
+
+    </script>
+</head>
+<body class="wwe">
+    <div class="agent-desktop">
+        <div class="container agent-desktop-container" id="agent-desktop-container" style="height: 609px;">
+            <div class="wwe-desktop-container wwe-workbins" id="wwe-workbins" style="display: block;">
+                <div class="wwe-workbins-left-panel ui-resizable" role="application">
+                    <div class="wwe-workbins-left-panel-top" style="bottom: 29px;">
+                        <div class="wwe-my-workbins-list-container" style="display: block;">
+                            <div class="wwe-workbins-list-content">
+                                <div tabindex="0" class="wwe-workbins-list jstree jstree-1 jstree-default" role="tree" aria-busy="false" aria-activedescendant="j1_2">
+                                    <ul id="my-ooo-content" class="jstree-container-ul jstree-children jstree-no-dots" role="group">
+                                        
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wwe-team-workbins-list-container" style="display: none;">
+                            <div class="wwe-workbins-list-content">
+                                <div tabindex="0" class="wwe-workbins-list jstree jstree-3 jstree-default" role="tree" aria-busy="false" aria-activedescendant="j3_3">
+                                    <ul id="my-workbins-user-list-content" class="jstree-container-ul jstree-children jstree-no-dots" role="group">
+                                        <li title="My Team Workbins" class="jstree-node agent jstree-last jstree-open" id="j3_1" role="treeitem" aria-expanded="true" aria-selected="true" aria-level="1" aria-labelledby="j3_1_anchor" data-agent-id="006657918c394d27ae724ce01f1edb65">
+                                            <i class="jstree-icon jstree-ocl" role="presentation"></i>
+                                            <a tabindex="-1" class="jstree-anchor jstree-clicked" id="j3_1_anchor">
+                                                <i class="jstree-icon jstree-themeicon" role="presentation"></i>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="wwe-workbins-left-panel-bottom">
+                        <div>
+                            <button class="my-workbin-link active">OutOfOffice</button>
+                        </div>
+                        <div>
+                            <button class="my-team-workbin-link" style="display: none">My Team OutOfOffice</button>
+                        </div>
+                        
+                    </div>
+                    <div class="ui-resizable-handle ui-resizable-e" style="display: block; z-index: 1000;"></div>
+                </div>
+                <div class="wwe-workbins-right-panel">
+                    <div class="wwe-alert-container"></div>
+                    <div class="wwe-workbin-container">
+                        <ul class="nav-tabs wwe-tab-header" id="wwe-workbins-workbin-region-tabs" role="tablist">
+                            <li class="wwe-tab-top active">
+                                <a tabindex="0" class="wwe-workbin-container-title" role="tab" aria-expanded="true" data-toggle="tab" data-target="#wwe-workbins-panel"></a>
+                            </li>
+                        </ul>
+                        <div class="tab-content wwe-tab-content" id="wwe-workbins-workbin-region-panels">
+                            <div class="wwe-tab-panel wwe-case-tab-content tab-pane active" id="wwe-workbins-panel">
+                                <div class="wwe-workbin-container-content">
+                                    <div class="wwe-workbin-top-panel ui-resizable">
+                                        <div class="wwe-interaction-management-alert-container">
+                                            <div class="wwe-display-header" id="desktopContainerNonSuccessMessage">
+                                                <button class="close" type="button" data-dismiss="alert">
+                                                    
+                                                </button>
+                                                
+                                                <span tabindex="0" class="alert-message" role="alert">Out Of Office - Reassignment</span>
+                                            </div>
+                                        </div>
+                                        <div class="wwe-workbin-toolbar">
+                                            
+                                            <div class="wwe-workbin-grid-container">
+                                                <div class="wwe-workbins-grid" id="wwe-workbins-grid">
+                                                    <div class="loader">
+                                                        <div class="wwe-loading-gif">
+                                                            <img alt="Loading Image" src="./img/ajax-loader.gif?version=8.5.202.50">
+                                                        </div>
+                                                    </div>
+                                                    <div class="wwe-workbins-grid-content">
+                                                        <div class="dataTables_wrapper no-footer" id="DataTables_Table_2_wrapper">
+                                                            <!--<table class="no-footer dataTable" id="DataTables_Table_2" role="grid" aria-readonly="true">
+    </table>-->
+
+                                                            <div class="displayContainer" id="userViewContainer">
+                                                                <div id="resp-table">
+                                                                    <div id="resp-table-body">
+                                                                        <div class="resp-table-row">
+                                                                            <div class="table-body-cell">
+                                                                                Start Date
+                                                                            </div>
+                                                                            <div class="table-body-cell">
+                                                                                <input tabindex="1" type="text" id="startDatePicker">
+                                                                            </div>
+                                                                            <div class="table-body-cell"> End Date </div>
+                                                                            <div class="table-body-cell">
+                                                                                <input tabindex="2" type="text" id="endDatePicker">
+                                                                            </div>
+                                                                        </div>
+                                                                        <div class="resp-table-row">
+                                                                            <div class="table-body-cell"> Assigned Agent </div>
+                                                                            <div class="table-body-cell">
+                                                                                <input tabindex="0" type="text" id="assigned_agent" value="" onclick="DisplayAvailableAgentList()">
+                                                                            </div>
+                                                                            <div class="table-body-cell">
+                                                                                <input type="hidden" id="hdnUserName" name="hdnUserName" />
+                                                                                <input type="hidden" id="hdnassgStartDate" name="hdnassgStartDate" />
+                                                                                <input type="hidden" id="hdnassgEndDate" name="hdnassgEndDate" />
+                                                                                <input type="hidden" id="hdnassgFor" name="hdnassgFor" />
+
+                                                                            </div>
+                                                                            <div class="table-body-cell">
+                                                                                <button class="btn" type="button" id="saveTransaction" onclick="SaveTransaction()">
+                                                                                    <span id="saveSpan"> Save </span>
+                                                                                </button>
+                                                                                <button class="btn" type="button" id="clearTransaction" onclick="ClearTransaction()">
+                                                                                    <span id="clearSpan">Clear </span>
+                                                                                </button>
+                                                                                <button class="btn" type="button" id="deleteTransaction" onclick="DeleteTransaction()">
+                                                                                    <span id="deleteSpan"> Delete </span>
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="wwe-displaySuccessMessage">
+                                                                <span id="dispSuccMessage">Display Success Message </span>
+                                                            </div>
+                                                            <div class="wwe-displayErrorMessage">
+                                                                <span id="dispErrMessage">Display Success Message </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                             </div>
+                                        </div>
+                                     </div>
+                                            
+                                 <div class="ui-resizable-handle ui-resizable-s" style="display: block; z-index: 1000;" ></div>
+                                 </div>
+                            </div>
+                                    
+                            <div class="wwe-workbin-bottom-panel wwe-workbins-details-region">
+                                <ul class="nav-tabs wwe-tab-header" id="wwe-workbins-details-region-tabs" role="tablist">
+                                    <li class="wwe-tab-top active"><a tabindex="0" id="Tabswwe-workbinsItem0" role="tab" aria-expanded="false" aria-controls="wwe-workbins-panel-0" data-toggle="tab" data-target="#wwe-workbins-panel-0">Agent Lists</a></li>
+
+                                </ul>
+                                <div class="tab-content wwe-tab-content" id="wwe-workbins-details-region-panels">
+                                    <div class="wwe-tab-panel wwe-case-tab-content tab-pane active" id="wwe-workbins-panel-0" role="tabpanel" aria-labelledby="Tabswwe-workbinsItem0">
+                                        <div class="ww-contact-interaction-detail" id="wweInteractionDetail">
+                                            <div class="no-interaction wwe-placeholder">
+                                                <table id="agentSelectionTable" class="compact" style="width:100%">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>User Name</th>
+                                                            <th>First Name</th>
+                                                            <th>Last Name</th>
+                                                            <th>Start Date</th>
+                                                            <th>End Date</th>
+                                                            <th>Assigned Agent</th>
+                                                            <th>Comments</th>
+                                                        </tr>
+                                                    </thead>
+
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                                </div>
+
+                            </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    <div id="AlertingOOO">
+        <p>This is the default dialog which is useful for displaying information. The dialog window can be moved, resized and closed with the &apos;x&apos; icon.</p>
+    </div>
+</body>
+</html>
